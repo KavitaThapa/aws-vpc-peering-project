@@ -39,3 +39,40 @@ The project also includes a controlled failure test to investigate how security-
 ## Project Status
 
 Core network configuration and connectivity tests have been completed. Documentation, evidence organization, and final project presentation are in progress.
+
+## Network Architecture and Resource Inventory
+
+The project uses two VPCs with non-overlapping IPv4 CIDR blocks connected through a VPC Peering connection.
+
+### VPCs and Subnets
+
+| VPC | CIDR Block | Subnet | Subnet CIDR | Purpose |
+|---|---|---|---|---|
+| `ewb-vpc-a` | `10.10.0.0/16` | `ewb-a-public` | `10.10.1.0/24` | Bastion host |
+| `ewb-vpc-a` | `10.10.0.0/16` | `ewb-a-private` | `10.10.2.0/24` | Private application instance |
+| `ewb-vpc-b` | `10.20.0.0/16` | `ewb-b-private` | `10.20.1.0/24` | Private application instance |
+
+### EC2 Instances
+
+| Instance | Role | Private IPv4 | Public IPv4 |
+|---|---|---|---|
+| `ewb-bastion` | Bastion host | `10.10.1.174` | Assigned |
+| `ewb-app-a` | Private application instance | `10.10.2.10` | None |
+| `ewb-app-b` | Private application instance | `10.20.1.10` | None |
+
+### VPC Peering
+
+- **VPC-A:** `10.10.0.0/16`
+- **VPC-B:** `10.20.0.0/16`
+- **Peering connection ID:** `pcx-0b0bec775ad8c7f44`
+- **Status:** Active
+- **Region:** `ap-south-1` (Mumbai)
+
+### Routing Configuration
+
+- The public route table for VPC-A routes internet-bound traffic through its Internet Gateway.
+- VPC-A has a route to `10.20.0.0/16` through the VPC Peering connection.
+- VPC-A's private route table routes `10.20.0.0/16` through the peering connection.
+- VPC-B's private route table routes `10.10.0.0/16` through the peering connection.
+- Each VPC retains its local route for its own CIDR block.
+
