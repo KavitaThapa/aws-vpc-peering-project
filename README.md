@@ -76,3 +76,59 @@ The project uses two VPCs with non-overlapping IPv4 CIDR blocks connected throug
 - VPC-B's private route table routes `10.10.0.0/16` through the peering connection.
 - Each VPC retains its local route for its own CIDR block.
 
+## Security Groups
+
+Security groups were configured to control SSH administration and ICMP connectivity testing.
+
+| Security Group | Applied To | Inbound Access |
+|---|---|---|
+| `ewb-sg-bastion` | Bastion host | SSH (TCP 22) from the administrator's public IP `/32` |
+| `ewb-sg-app-a` | App-A | SSH (TCP 22) from bastion private IP `10.10.1.174/32`; ICMP Echo Request from `10.20.1.10/32` |
+| `ewb-sg-app-b` | App-B | SSH (TCP 22) from bastion private IP `10.10.1.174/32`; ICMP Echo Request from `10.10.2.10/32` |
+
+The ICMP rule on App-B was temporarily removed for the controlled failure test and restored afterward.
+
+## Connectivity Testing and Results
+
+### 1. Forward Connectivity: App-A to App-B
+
+- **Source:** App-A — `10.10.2.10`
+- **Destination:** App-B — `10.20.1.10`
+- **Command:** `ping -c 4 10.20.1.10`
+- **Result:** Successful; 4 packets received and 0% packet loss.
+
+### 2. Reverse Connectivity: App-B to App-A
+
+- **Source:** App-B — `10.20.1.10`
+- **Destination:** App-A — `10.10.2.10`
+- **Command:** `ping -c 4 10.10.2.10`
+- **Result:** Verified successful bidirectional connectivity.
+
+### 3. Controlled Failure Test
+
+The inbound ICMP Echo Request rule on `ewb-sg-app-b` was temporarily removed.
+
+- **Test command:** `ping -c 4 10.20.1.10` from App-A.
+- **Observed result:** 4 packets transmitted, 0 received, 100% packet loss.
+
+This confirmed that the destination security-group rule was required for the ICMP test traffic to reach App-B.
+
+### 4. Recovery Test
+
+The ICMP Echo Request rule was restored on App-B.
+
+- **Test command:** `ping -c 4 10.20.1.10` from App-A.
+- **Observed result:** 4 packets transmitted, 4 received, 0% packet loss.
+
+### 5. Private Instance Access
+
+SSH access to the private application instances was verified through the bastion host. App-A and App-B had no public IPv4 addresses.
+
+## Key Learnings
+
+- VPC Peering enables private communication between VPCs when routing and security rules permit it.
+- Routes must be configured in both directions.
+- Security groups control traffic to EC2 instances.
+- A bastion host provides an SSH entry point to private instances.
+- Controlled failure testing helps isolate security-related connectivity problems.
+- Restoring the required ICMP rule returned the ping test to a successful state.
